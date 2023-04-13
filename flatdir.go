@@ -1,28 +1,34 @@
 package main
 
 import (
-	"flag"
 	"fmt"
-	"github.com/qwenode/gogo/convert"
-	"github.com/qwenode/gogo/file"
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
+
+	"github.com/qwenode/gogo/convert"
+	"github.com/qwenode/gogo/file"
 )
 
 func main() {
-	source := flag.String("s", "", "set source directory")
-	to := flag.String("t", "", "set flat directory")
-	flag.Parse()
-	sourceDir, _ := filepath.Abs(*source)
-	toDir, _ := filepath.Abs(*to)
+	// catch all panic
+	defer func() {
+		err := recover()
+		if err != nil {
+			//debug.PrintStack()
+			log.Println("System Error:", err)
+		}
+	}()
+	sourceDir, _ := filepath.Abs("./")
+	toDir := filepath.Join(sourceDir, "_flat")
 	log.Println(sourceDir, toDir)
 	if !file.Exist(sourceDir) || !file.IsDirectory(sourceDir) {
 		log.Fatalln("source directory does not exist")
 	}
 	if !file.Exist(toDir) || !file.IsDirectory(toDir) {
-		log.Fatalln("flat directory does not exist")
+		os.MkdirAll(toDir, os.ModePerm)
 	}
 	if sourceDir == toDir {
 		log.Fatalln("source directory can't same as flat directory")
@@ -30,7 +36,15 @@ func main() {
 	moved := 0
 	failed := 0
 	_ = filepath.Walk(sourceDir, func(path string, info os.FileInfo, err error) error {
+		if strings.HasPrefix(path, toDir) {
+			return nil
+		}
+
 		if err != nil || info.IsDir() {
+			return nil
+		}
+		log.Println(path, sourceDir, filepath.Base(filepath.Dir(path)), filepath.Base(sourceDir))
+		if filepath.Base(filepath.Dir(path)) == filepath.Base(sourceDir) {
 			return nil
 		}
 		//log.Println(path, info.IsDir(), info.Name(), err)
